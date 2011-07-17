@@ -39,6 +39,7 @@
 #include <linux/memory.h>
 #include <linux/pm_runtime.h>
 #include <linux/wakelock.h>
+#include <linux/gpio.h>
 
 #include <asm/cacheflush.h>
 #include <asm/div64.h>
@@ -1310,12 +1311,30 @@ msmsdcc_platform_status_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static struct work_struct full_wake_work;
+
+void request_suspend_state(int);
+int get_suspend_state(void);
+
+static void full_wake(struct work_struct *work) {
+	printk("sdcc_full_wake start\n");
+	msleep(100);
+	if(get_suspend_state()==3) {
+		printk("sdcc_full_wake wakeup\n");
+		request_suspend_state(0);
+		msleep(1000);
+		printk("sdcc_full_wake sleep\n");
+		request_suspend_state(3);
+	}
+}
+
+
 static irqreturn_t
 msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 {
 	struct msmsdcc_host	*host = dev_id;
 
-	pr_info("%s: SDIO Wake up IRQ : %d\n", __func__, irq);
+	pr_info("%s: SDIO Wake up IRQ : %d %d\n", __func__, irq, gpio_get_value(118));
 	spin_lock(&host->lock);
 	if (!host->sdio_irq_disabled) {
 		disable_irq_nosync(irq);
@@ -1326,7 +1345,9 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 		}
 		host->sdio_irq_disabled = 1;
 	}
+	schedule_work(&full_wake_work);
 	spin_unlock(&host->lock);
+	pr_info("%s: SDIO Wake up exit : %d \n", __func__, gpio_get_value(118));
 
 	return IRQ_HANDLED;
 }
@@ -1540,6 +1561,8 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	tasklet_init(&host->dma_tlet, msmsdcc_dma_complete_tlet,
 			(unsigned long)host);
+	INIT_WORK(&full_wake_work,full_wake); 
+
 
 	/*
 	 * Setup DMA
@@ -1922,6 +1945,8 @@ msmsdcc_runtime_suspend(struct device *dev)
 		if ((mmc->pm_flags & MMC_PM_WAKE_SDIO_IRQ) && mmc->card &&
 				mmc->card->type == MMC_TYPE_SDIO) {
 			host->sdio_irq_disabled = 0;
+			pr_info("%s: SDIO suspend : %d \n", __func__, gpio_get_value(118));
+
 			enable_irq_wake(host->plat->sdiowakeup_irq);
 			enable_irq(host->plat->sdiowakeup_irq);
 		}
