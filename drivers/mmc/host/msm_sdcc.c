@@ -1322,7 +1322,7 @@ static void full_wake(struct work_struct *work) {
 	if(get_suspend_state()==3) {
 		printk("sdcc_full_wake wakeup\n");
 		request_suspend_state(0);
-		msleep(1000);
+		msleep(400);
 		printk("sdcc_full_wake sleep\n");
 		request_suspend_state(3);
 	}
