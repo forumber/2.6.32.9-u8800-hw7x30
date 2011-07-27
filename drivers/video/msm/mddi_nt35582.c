@@ -148,7 +148,7 @@ static int __init nt35582_init(void)
  */
 /* change 24bit into 16bit */
 		pinfo->bpp = 16;
-		pinfo->fb_num = 4;
+		pinfo->fb_num = 2;
         pinfo->clk_rate = 192000000;
 	    pinfo->clk_min = 192000000;
 	    pinfo->clk_max = 192000000;
