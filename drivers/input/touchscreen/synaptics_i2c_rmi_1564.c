@@ -558,6 +558,11 @@ static u32 touch_get_extra_keycode(int pos_x, int pos_y)
 	return touch_keycode;
 }
 #endif
+static int vibrate=30;
+
+module_param(vibrate, int, 00644);
+
+void msm_timed_vibrate(int);
 
 static void synaptics_rmi4_work_func(struct work_struct *work)
 {
@@ -729,6 +734,8 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 								     key_input,
 								     key_tmp,
 								     1);
+								if(vibrate)
+									msm_timed_vibrate(vibrate);
 								key_pressed1 =
 								    1;
 								DBG_MASK
