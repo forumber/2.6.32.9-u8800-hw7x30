@@ -1316,18 +1316,27 @@ static struct work_struct full_wake_work;
 void request_suspend_state(int);
 int get_suspend_state(void);
 
+int full_wake_delay=100;
+int full_wake_duration=400;
+
+module_param(full_wake_delay,int,00644);
+module_param(full_wake_duration,int,00644);
+
+extern long int msm_rtc_sleep_duration;
+
 static void full_wake(struct work_struct *work) {
 	printk("sdcc_full_wake start\n");
-	msleep(100);
-	if(get_suspend_state()==3) {
+	msleep(full_wake_delay);
+	if(full_wake_duration!=-1 && get_suspend_state()==3) {
 		printk("sdcc_full_wake wakeup\n");
 		request_suspend_state(0);
-		msleep(400);
+		msleep(full_wake_duration);
 		printk("sdcc_full_wake sleep\n");
 		request_suspend_state(3);
 	}
 }
 
+static int count_short_sleeps=0;
 
 static irqreturn_t
 msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
@@ -1345,9 +1354,18 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 		}
 		host->sdio_irq_disabled = 1;
 	}
-	schedule_work(&full_wake_work);
+	// wifi sometimes gets stuck in a state where it immediately wakes the device up
+	// if we see 10 consecutive short sleeps (<= 2 secs) call the early resume/suspend handlers
+	// to fix it
+	if(msm_rtc_sleep_duration<=2)
+		count_short_sleeps++;
+	else
+		count_short_sleeps=0;
+	if(count_short_sleeps>10)
+		schedule_work(&full_wake_work);
+
 	spin_unlock(&host->lock);
-	pr_info("%s: SDIO Wake up exit : %d \n", __func__, gpio_get_value(118));
+//	pr_info("%s: SDIO Wake up exit : %d \n", __func__, gpio_get_value(118));
 
 	return IRQ_HANDLED;
 }
