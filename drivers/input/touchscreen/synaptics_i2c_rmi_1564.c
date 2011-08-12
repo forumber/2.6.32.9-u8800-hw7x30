@@ -218,7 +218,9 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h);
 static void synaptics_rmi4_late_resume(struct early_suspend *h);
 #endif
 
-#define DUP_THRESHOLD 10
+int dup_threshold=0;
+
+module_param(dup_threshold, int, 00644);
 
 static int duplicated_filter( int x, int y, int x1, int y1,
                                                 const int finger2_pressed, const int z)
@@ -228,6 +230,8 @@ static int duplicated_filter( int x, int y, int x1, int y1,
         static int ref_x[2], ref_y[2];
         uint8_t discard[2] = {0, 0};
 
+	if(dup_threshold==0) return 0;
+
         drift_x[0] = abs(ref_x[0] - x);
         drift_y[0] = abs(ref_y[0] - y);
         if (finger2_pressed) {
@@ -235,11 +239,11 @@ static int duplicated_filter( int x, int y, int x1, int y1,
                 drift_y[1] = abs(ref_y[1] - y1);
         }
         /* printk("ref_x :%d, ref_y: %d, x: %d, y: %d\n", ref_x, ref_y, pos[0][0], pos[0][1]); */
-        if (drift_x[0] < DUP_THRESHOLD && drift_y[0] < DUP_THRESHOLD && z != 0) {
+        if (drift_x[0] < dup_threshold && drift_y[0] < dup_threshold && z != 0) {
                 /* printk("ref_x :%d, ref_y: %d, x: %d, y: %d\n", ref_x[0], ref_y[0], pos[0][0], pos[0][1]); */
                 discard[0] = 1;
         }
-        if (!finger2_pressed || (drift_x[1] < DUP_THRESHOLD && drift_y[1] < DUP_THRESHOLD)) {
+        if (!finger2_pressed || (drift_x[1] < dup_threshold && drift_y[1] < dup_threshold)) {
                 discard[1] = 1;
         }
         if (discard[0] && discard[1]) {
