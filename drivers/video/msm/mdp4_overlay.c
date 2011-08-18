@@ -1134,6 +1134,8 @@ static int mdp4_overlay_req2pipe(struct mdp_overlay *req, int mixer,
 	struct mdp4_pipe_desc  *pd;
 	int ret, ptype;
 
+//	printk("mdp4_overlay_req2pipe %d %d %d %d", req->src_rect.w, req->src_rect.h, req->dst_rect.w, req->dst_rect.h);
+
 	if (mixer >= MDP4_MAX_MIXER) {
 		printk(KERN_ERR "mpd_overlay_req2pipe: mixer out of range!\n");
 		mdp4_stat.err_mixer++;

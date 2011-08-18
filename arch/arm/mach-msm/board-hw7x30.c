@@ -2371,7 +2371,7 @@ static struct i2c_board_info msm_i2c_board_info[] = {
 #ifdef CONFIG_HUAWEI_FEATURE_RMI_TOUCH
 	{   
 		I2C_BOARD_INFO("Synaptics_rmi", 0x70),
-        .irq = MSM_GPIO_TO_INT(ATMEL_RMI_TS_IRQ),
+		.irq = MSM_GPIO_TO_INT(ATMEL_RMI_TS_IRQ),
 	},
 #endif
 #ifdef CONFIG_HUAWEI_FEATURE_AT42QT_TS
