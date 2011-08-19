@@ -45,7 +45,11 @@ static int led_vals[3]={0,0,0};
 
 static int off_when_suspended=1;
 
+static int backlight_notification=0;
+
 module_param(off_when_suspended,int,00644);
+
+module_param(backlight_notification,int,00644);
 
 static void set_red_brightness(struct led_classdev *led_cdev,
 					enum led_brightness value)
