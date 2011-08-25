@@ -445,11 +445,11 @@ static void __init acpuclk_init(void)
 static void __init lpj_init(void)
 {
 	int i;
-//	const struct clkctl_acpu_speed *base_clk = drv_state.current_speed;
+	const struct clkctl_acpu_speed *base_clk = drv_state.current_speed;
 
 	for (i = 0; acpu_freq_tbl[i].acpu_clk_khz; i++) {
 		acpu_freq_tbl[i].lpj = cpufreq_scale(loops_per_jiffy,
-						/*base_clk->acpu_clk_khz, */460800,
+						base_clk->acpu_clk_khz,
 						acpu_freq_tbl[i].acpu_clk_khz);
 	}
 }

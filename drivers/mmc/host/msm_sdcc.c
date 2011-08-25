@@ -1311,31 +1311,24 @@ msmsdcc_platform_status_irq(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static struct work_struct full_wake_work;
+static struct delayed_work full_wake_work;
 
 void request_suspend_state(int);
 int get_suspend_state(void);
 
-static int full_wake_delay=100;
-static int full_wake_duration=400;
+static int full_wake_duration=500;
 static int max_no_of_sleeps=10;
 
-module_param(full_wake_delay,int,00644);
 module_param(full_wake_duration,int,00644);
 module_param(max_no_of_sleeps,int,00644);
 
 extern long int msm_rtc_sleep_duration;
 
+// this takes effect when the resume handlers have all been called
+// but must be done after they have started
 static void full_wake(struct work_struct *work) {
-	printk("sdcc_full_wake start\n");
-	msleep(full_wake_delay);
-	if(full_wake_duration!=-1 && get_suspend_state()==3) {
-		printk("sdcc_full_wake wakeup\n");
-		request_suspend_state(0);
-		msleep(full_wake_duration);
-		printk("sdcc_full_wake sleep\n");
-		request_suspend_state(3);
-	}
+	printk("sdcc_full_wake sleep\n");
+	request_suspend_state(3);
 }
 
 static int count_short_sleeps=0;
@@ -1356,7 +1349,7 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 		}
 		host->sdio_irq_disabled = 1;
 	}
-	// wifi sometimes gets stuck in a state where it immediately wakes the device up
+	// wifi sometimes gets stuck in a state where it immediately wakes the device up.
 	// if we see 10 consecutive short sleeps (<= 2 secs) call the early resume/suspend handlers
 	// to fix it
 
@@ -1365,9 +1358,10 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 	else
 		count_short_sleeps=0;
 
-	if(count_short_sleeps>max_no_of_sleeps) {
+	if(count_short_sleeps>max_no_of_sleeps && full_wake_duration>0) {
 		printk("SDIO Wake up bug triggered\n");
-		schedule_work(&full_wake_work);
+		request_suspend_state(0);
+		schedule_delayed_work(&full_wake_work,(HZ*full_wake_duration)/1000);
 		count_short_sleeps=0;
 	}
 
@@ -1586,7 +1580,7 @@ msmsdcc_probe(struct platform_device *pdev)
 
 	tasklet_init(&host->dma_tlet, msmsdcc_dma_complete_tlet,
 			(unsigned long)host);
-	INIT_WORK(&full_wake_work,full_wake); 
+	INIT_DELAYED_WORK(&full_wake_work,full_wake); 
 
 
 	/*
