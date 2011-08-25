@@ -58,6 +58,10 @@ int mdp_dmap_vsync_get(void)
 }
 #endif
 
+static int debug=0;
+
+module_param(debug,int,00644);
+
 void mdp4_mddi_vsync_enable(struct msm_fb_data_type *mfd,
 		struct mdp4_overlay_pipe *pipe, int which)
 {
@@ -426,7 +430,8 @@ void mdp4_dma_s_update_lcd(struct msm_fb_data_type *mfd,
 		dma_s_cfg_reg |= DMA_IBUF_FORMAT_RGB565;
 
 	dma_s_cfg_reg |= DMA_DITHER_EN;
-
+	if(debug) 
+		printk("DMA %d %d\n",pipe->dst_y, pipe->dst_x);
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	/* PIXELSIZE */

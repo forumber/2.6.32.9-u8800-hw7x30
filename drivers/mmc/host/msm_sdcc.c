@@ -1316,11 +1316,13 @@ static struct work_struct full_wake_work;
 void request_suspend_state(int);
 int get_suspend_state(void);
 
-int full_wake_delay=100;
-int full_wake_duration=400;
+static int full_wake_delay=100;
+static int full_wake_duration=400;
+static int max_no_of_sleeps=10;
 
 module_param(full_wake_delay,int,00644);
 module_param(full_wake_duration,int,00644);
+module_param(max_no_of_sleeps,int,00644);
 
 extern long int msm_rtc_sleep_duration;
 
@@ -1363,9 +1365,9 @@ msmsdcc_platform_sdiowakeup_irq(int irq, void *dev_id)
 	else
 		count_short_sleeps=0;
 
-	if(count_short_sleeps>10) {
+	if(count_short_sleeps>max_no_of_sleeps) {
 		printk("SDIO Wake up bug triggered\n");
-//		schedule_work(&full_wake_work);
+		schedule_work(&full_wake_work);
 		count_short_sleeps=0;
 	}
 
