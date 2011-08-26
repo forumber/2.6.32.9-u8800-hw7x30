@@ -218,9 +218,11 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h);
 static void synaptics_rmi4_late_resume(struct early_suspend *h);
 #endif
 
-int dup_threshold=0;
-
+static int dup_threshold=0;
 module_param(dup_threshold, int, 00644);
+
+static int debug=0;
+module_param(debug, int, 00644);
 
 static int duplicated_filter( int x, int y, int x1, int y1,
                                                 const int finger2_pressed, const int z)
@@ -591,7 +593,14 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 	struct synaptics_rmi4 *ts = container_of(work,
 						 struct synaptics_rmi4, work);
 
+	if(debug)
+        	printk("synaptics_rmi4_work enter\n");
+
+
 	ret = i2c_transfer(ts->client->adapter, ts->data_i2c_msg, 2);
+
+	if(debug)
+		printk("i2c data length %d\n",ts->data_length);
 
 	if (ret < 0) {
 		printk(KERN_ERR "%s: i2c_transfer failed\n", __func__);
@@ -652,54 +661,54 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 					z = 0;
 				if(!duplicated_filter(x,y,x1,y1, finger2_status, z)) {
 				
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_TOUCH_MAJOR, z);
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_WIDTH_MAJOR, z);
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_POSITION_X, x);
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_POSITION_Y, y);
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_TOUCH_MINOR, min(wx,
 									 wy));
-				input_report_abs(ts->input_dev,
+					input_report_abs(ts->input_dev,
 						 ABS_MT_ORIENTATION,
 						 (wx > wy ? 1 : 0));
-				input_mt_sync(ts->input_dev);
-				if (finger2_status) {
-					input_report_abs(ts->input_dev,
+					input_mt_sync(ts->input_dev);
+					if (finger2_status) {
+						input_report_abs(ts->input_dev,
 							 ABS_MT_TOUCH_MAJOR,
 							 z1);
-					input_report_abs(ts->input_dev,
+						input_report_abs(ts->input_dev,
 							 ABS_MT_WIDTH_MAJOR,
 							 z1);
-					input_report_abs(ts->input_dev,
+						input_report_abs(ts->input_dev,
 							 ABS_MT_POSITION_X, x1);
-					input_report_abs(ts->input_dev,
+						input_report_abs(ts->input_dev,
 							 ABS_MT_POSITION_Y, y1);
-					input_report_abs(ts->input_dev,
+						input_report_abs(ts->input_dev,
 							 ABS_MT_TOUCH_MINOR,
 							 min(wx1, wy1));
-					input_report_abs(ts->input_dev,
+						input_report_abs(ts->input_dev,
 							 ABS_MT_ORIENTATION,
 							 (wx1 > wy1 ? 1 : 0));
 
-					input_mt_sync(ts->input_dev);
-				} else {
-					if (ts->f11_fingers[1].status == 1) {
-						input_report_abs(ts->input_dev,
+						input_mt_sync(ts->input_dev);
+					} else {
+						if (ts->f11_fingers[1].status == 1) {
+							input_report_abs(ts->input_dev,
 								 ABS_MT_TOUCH_MAJOR,
 								 0);
-						input_report_abs(ts->input_dev,
+							input_report_abs(ts->input_dev,
 								 ABS_MT_WIDTH_MAJOR,
 								 0);
-						input_mt_sync(ts->input_dev);
+							input_mt_sync(ts->input_dev);
+						}
 					}
-				}
-				ts->f11_fingers[0].status = finger_status;
-				ts->f11_fingers[1].status = finger2_status;
-				input_sync(ts->input_dev);
+					ts->f11_fingers[0].status = finger_status;
+					ts->f11_fingers[1].status = finger2_status;
+					input_sync(ts->input_dev);
 				}
 
 				if (is_in_extra_region(x, y)) {
@@ -769,6 +778,9 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 		}
 	}
 
+	if(debug)
+        	printk("synaptics_rmi4_work exit\n");
+
 	if (ts->use_irq)
 		enable_irq(ts->client->irq);
 }
@@ -791,6 +803,8 @@ irqreturn_t synaptics_rmi4_irq_handler(int irq, void *dev_id)
 	struct synaptics_rmi4 *ts = dev_id;
 
 	disable_irq_nosync(ts->client->irq);
+	if(debug)
+		printk("synaptics_rmi4_irq_handler\n");
 	queue_work(synaptics_wq, &ts->work);
 
 	return IRQ_HANDLED;
@@ -1034,22 +1048,22 @@ static int synaptics_rmi4_probe(struct i2c_client *client,
 		touch_extra_key_region.extra_key[2].touch_keycode = KEY_HOME;
 		touch_extra_key_region.extra_key[3].touch_keycode = KEY_SEARCH;
 	}
-	ts->key_input = input_allocate_device();
-	if (!ts->key_input || !ts) {
+	ts->key_input = ts->input_dev; //input_allocate_device();
+/*	if (!ts->key_input || !ts) {
 		ret = -ENOMEM;
 		goto err_input_register_device_failed;
 	}
 	ts->key_input->name = "touchscreen_key";
-
+*/
 	set_bit(EV_KEY, ts->key_input->evbit);
 	for (i = 0; i < EXTRA_MAX_TOUCH_KEY; i++) {
 		set_bit(touch_extra_key_region.extra_key[i].
 			touch_keycode & KEY_MAX, ts->key_input->keybit);
 	}
 
-	ret = input_register_device(ts->key_input);
-	if (ret)
-		goto err_key_input_register_device_failed;
+//	ret = input_register_device(ts->key_input);
+//	if (ret)
+//		goto err_key_input_register_device_failed;
 
 #endif
 
