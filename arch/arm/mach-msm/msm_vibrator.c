@@ -22,48 +22,28 @@
 
 #include <mach/msm_rpcrouter.h>
 
-#ifdef CONFIG_HUAWEI_EVALUATE_POWER_CONSUMPTION 
 #include <mach/msm_battery.h>
-#endif
 #include <linux/delay.h>
-#define VIBRATOR_DELAY 20
-#define VIBRATOR_MIN 50
 
 #define PM_LIBPROG      0x30000061
-#ifndef CONFIG_HUAWEI_FEATURE_VIBRATOR
-#if (CONFIG_MSM_AMSS_VERSION == 6220) || (CONFIG_MSM_AMSS_VERSION == 6225)
-#define PM_LIBVERS      0xfb837d0b
-#else
-#define PM_LIBVERS      0x10001
-#endif
-#else
 #define PM_LIBVERS	0x00030001
-#endif
-#ifndef CONFIG_HUAWEI_FEATURE_VIBRATOR
-#define HTC_PROCEDURE_SET_VIB_ON_OFF	21
-#define PMIC_VIBRATOR_LEVEL	(3000)
-#else
+
 #define HW_PROCEDURE_SET_VIB_ON_OFF	22
 #define PMIC_VIBRATOR_LEVEL	(3000)
-#endif
-static struct work_struct work_vibrator_on;
-static struct work_struct work_vibrator_off;
+
+static struct work_struct vibrator_work;
 static struct hrtimer vibe_timer;
-#ifdef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
+static spinlock_t vibe_lock;
+static int vibe_state;
 static int time_value = 0;
-#endif
 
 static void set_pmic_vibrator(int on)
 {
 	static struct msm_rpc_endpoint *vib_endpoint;
 	struct set_vib_on_off_req {
 		struct rpc_request_hdr hdr;
-		#ifndef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
-		uint32_t data;
-		#else
 		uint32_t vib_volt;
-		uint32_t vib_time;//vibratting time pass to modem .
-		#endif
+		uint32_t vib_time;
 	} req;
 
 	if (!vib_endpoint) {
@@ -77,98 +57,47 @@ static void set_pmic_vibrator(int on)
 
 	if (on)
 	{
-		#ifndef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
-		req.data = cpu_to_be32(PMIC_VIBRATOR_LEVEL);
-		#else
 		req.vib_volt = cpu_to_be32(PMIC_VIBRATOR_LEVEL); 
 		req.vib_time = cpu_to_be32(time_value); 
-		#endif
 	}
 	else
 	{
-		#ifndef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
-		req.data = cpu_to_be32(0);
-		#else
 		req.vib_volt = cpu_to_be32(0); 
-		req.vib_time = cpu_to_be32(0); 
-		#endif
+		req.vib_time = cpu_to_be32(0);
 	}
-#ifndef CONFIG_HUAWEI_FEATURE_VIBRATOR
-	msm_rpc_call(vib_endpoint, HTC_PROCEDURE_SET_VIB_ON_OFF, &req,
-		sizeof(req), 5 * HZ);
-#else
 	msm_rpc_call(vib_endpoint, HW_PROCEDURE_SET_VIB_ON_OFF, &req,
 		sizeof(req), 5 * HZ);
-#endif
+
 }
 
-static void pmic_vibrator_on(struct work_struct *work)
+static void update_vibrator(struct work_struct *work)
 {
-    /*move the consume stat to modem side*/
-
-	set_pmic_vibrator(1);
+	set_pmic_vibrator(vibe_state);
 }
 
-static void pmic_vibrator_off(struct work_struct *work)
-{
-	set_pmic_vibrator(0);
-
-    /*move the consume stat to modem side*/
-    
-}
-
-#ifndef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
-static void timed_vibrator_on(struct timed_output_dev *sdev)
-{
-	schedule_work(&work_vibrator_on);
-}
-
-#endif
-static void timed_vibrator_off(struct timed_output_dev *sdev)
-{
-	schedule_work(&work_vibrator_off);
-}
-#ifndef CONFIG_HUAWEI_SETTING_TIMER_FOR_VIBRATOR_OFF
 static void vibrator_enable(struct timed_output_dev *dev, int value)
 {
+	unsigned long	flags;
+
+	time_value = value;
+	spin_lock_irqsave(&vibe_lock, flags);
 	hrtimer_cancel(&vibe_timer);
 
 	if (value == 0)
-		timed_vibrator_off(dev);
+		vibe_state = 0;
 	else {
+		printk(KERN_INFO "%s(parent:%s): vibrates %d msec\n",
+			current->comm, current->parent->comm, value);
 		value = (value > 15000 ? 15000 : value);
-
-		timed_vibrator_on(dev);
-
+		vibe_state = 1;
 		hrtimer_start(&vibe_timer,
-			      ktime_set(value / 1000, (value % 1000) * 1000000),
-			      HRTIMER_MODE_REL);
+			ktime_set(value / 1000, (value % 1000) * 1000000),
+			HRTIMER_MODE_REL);
 	}
-}
-#else
-static void vibrator_enable(struct timed_output_dev *dev, int value)
-{
-	time_value = value;//save this value as vibratting time
-	hrtimer_cancel(&vibe_timer);
+	spin_unlock_irqrestore(&vibe_lock, flags);
 
-	if (value == 0)
-	{
-		mdelay(VIBRATOR_DELAY);
-		//timed_vibrator_off(dev);
-		pmic_vibrator_off(NULL);
-	}
-	else {
-		value = (value > 15000 ? 15000 : value);
-		value = (value < VIBRATOR_MIN ? VIBRATOR_MIN : value);
-
-		//timed_vibrator_on(dev);
-		pmic_vibrator_on(NULL);//use this function instead of timed_vibrator_on.
-		hrtimer_start(&vibe_timer,
-			      ktime_set(value / 1000, (value % 1000) * 1000000),
-			      HRTIMER_MODE_REL);
-	}
+	schedule_work(&vibrator_work);
 }
-#endif
 
 void msm_timed_vibrate(int value) {
 	vibrator_enable(0,value);
@@ -185,7 +114,8 @@ static int vibrator_get_time(struct timed_output_dev *dev)
 
 static enum hrtimer_restart vibrator_timer_func(struct hrtimer *timer)
 {
-	timed_vibrator_off(NULL);
+	vibe_state = 0;
+	schedule_work(&vibrator_work);
 	return HRTIMER_NORESTART;
 }
 
@@ -197,9 +127,8 @@ static struct timed_output_dev pmic_vibrator = {
 
 void __init msm_init_pmic_vibrator(void)
 {
-	INIT_WORK(&work_vibrator_on, pmic_vibrator_on);
-	INIT_WORK(&work_vibrator_off, pmic_vibrator_off);
-
+	INIT_WORK(&vibrator_work, update_vibrator);
+	vibe_state = 0;
 	hrtimer_init(&vibe_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibe_timer.function = vibrator_timer_func;
 
