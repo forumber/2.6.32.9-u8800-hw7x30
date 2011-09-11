@@ -262,6 +262,9 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 	tx_dev_id = ucontrol->value.integer.value[1];
 	tx_dev_info = audio_dev_ctrl_find_dev(tx_dev_id);
 
+	if(headset_mic_switch && tx_dev_id == 3)
+		tx_dev_id = 10;
+
 	if (IS_ERR(tx_dev_info)) {
 		MM_ERR("pass invalid dev_id\n");
 		rc = PTR_ERR(tx_dev_info);
