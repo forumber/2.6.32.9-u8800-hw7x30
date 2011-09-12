@@ -581,6 +581,7 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 	u32 key_tmp = 0;
 	static u32 key_tmp_old = 0;
 	static u32 key_pressed1 = 0;
+	static int finger_down=0;
 #endif
 
 	__u8 *finger_reg = NULL;
@@ -637,6 +638,10 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 				wx1 = finger_reg[3] & 0xf;
 				wy1 = finger_reg[3] >> 4;
 				z1 = finger_reg[4];
+				if(x>ts->f11_max_x-1)
+					x=ts->f11_max_x-1;
+				if(x<1)
+					x=1;
 				if (z) {
 					input_report_abs(ts->input_dev, ABS_X,
 							 x);
@@ -711,7 +716,7 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 					input_sync(ts->input_dev);
 				}
 
-				if (is_in_extra_region(x, y)) {
+				if (is_in_extra_region(x, y) && !finger_down) {
 					key_tmp = touch_get_extra_keycode(x, y);
 					/*save the key value for some times the value is null */
 					if ((key_tmp_old != key_tmp)
@@ -760,6 +765,7 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 				}
 				/*when the touch is out of key area report the last key release */
 				else {
+					finger_down=z;
 					if (0 == f) {
 						if (1 == key_pressed1) {
 							input_report_key(ts->
