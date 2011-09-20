@@ -54,8 +54,10 @@ static int device_index; /* Count of Device controls */
 static int simple_control; /* Count of simple controls*/
 
 static int headset_mic_switch = 0;
+static int speakerphone_echo_fix = 1;
 
 module_param(headset_mic_switch,int,00644);
+module_param(speakerphone_echo_fix,int,00644);
 
 static int msm_scontrol_count_info(struct snd_kcontrol *kcontrol,
 				struct snd_ctl_elem_info *uinfo)
@@ -260,10 +262,12 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 
 	/* Tx Device Routing */
 	tx_dev_id = ucontrol->value.integer.value[1];
+
+	if((headset_mic_switch && tx_dev_id == 3)||(speakerphone_echo_fix && tx_dev_id == 12))
+		tx_dev_id = 10;
+
 	tx_dev_info = audio_dev_ctrl_find_dev(tx_dev_id);
 
-	if(headset_mic_switch && tx_dev_id == 3)
-		tx_dev_id = 10;
 
 	if (IS_ERR(tx_dev_info)) {
 		MM_ERR("pass invalid dev_id\n");
@@ -325,8 +329,10 @@ static int msm_device_put(struct snd_kcontrol *kcontrol,
 
 	set = ucontrol->value.integer.value[0];
 	route_cfg.dev_id = ucontrol->id.numid - device_index;
-	if (headset_mic_switch && route_cfg.dev_id == 3)
+
+	if ((headset_mic_switch && route_cfg.dev_id == 3) || (speakerphone_echo_fix && route_cfg.dev_id == 12))
 		route_cfg.dev_id=10;
+
 	dev_info = audio_dev_ctrl_find_dev(route_cfg.dev_id);
 	if (IS_ERR(dev_info)) {
 		MM_ERR("pass invalid dev_id\n");
