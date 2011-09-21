@@ -95,7 +95,7 @@ static struct clkctl_acpu_speed *backup_s;
 static struct pll pll2_tbl[] = {
 	{  25, 0, 1, 0 }, /* 480 MHz */
 	{  28, 1, 3, 0 }, /* 544 MHz */
-	{  31, 0, 1, 0 }, /* 600 MHz */
+	{  31, 1, 4, 0 }, /* 600 MHz */
 	{  42, 0, 1, 0 }, /*  806 MHz */
 	{  53, 1, 3, 0 }, /* 1024 MHz */
 	{ 125, 0, 1, 1 }, /* 1200 MHz */
@@ -127,7 +127,7 @@ static struct clkctl_acpu_speed acpu_freq_tbl[] = {
 	{ 1, 245760, PLL_3,    5, 2,  61440000,  875, VDD_RAW(875), LOW },
 	{ 1, 368640, PLL_3,    5, 1,  122800000, 900, VDD_RAW(900), LOW },
 	{ 1, 480000, PLL_2,    3, 0,  122800000, 900, VDD_RAW(900), NOMINAL, &pll2_tbl[0] },
-	{ 1, 576000, PLL_2,	   3, 0,  122800000, 900, VDD_RAW(900), NOMINAL, &pll2_tbl[1] },
+	{ 1, 544000, PLL_2,	   3, 0,  122800000, 900, VDD_RAW(900), NOMINAL, &pll2_tbl[1] },
     { 1, 600000, PLL_2,    3, 0,  122800000, 925, VDD_RAW(925), NOMINAL, &pll2_tbl[2] },   
 	/* AXI has MSMC1 implications. See above. */
 	{ 1, 768000, PLL_1,    2, 0,  153600000, 1050, VDD_RAW(1050), NOMINAL },
