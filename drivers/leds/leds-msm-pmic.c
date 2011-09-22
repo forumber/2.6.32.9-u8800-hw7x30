@@ -32,6 +32,9 @@
 #include <asm/mach-types.h>
 #endif
 #define MAX_KEYPAD_BL_LEVEL	16
+static int disable_keypad_leds = 0;
+
+module_param(disable_keypad_leds,int,00644);
 
 static void msm_keypad_bl_led_set(struct led_classdev *led_cdev,
 	enum led_brightness value)
@@ -40,7 +43,7 @@ static void msm_keypad_bl_led_set(struct led_classdev *led_cdev,
     int ret = 0;
     if(machine_is_msm7x30_u8800()) 
     {
-
+	  if(disable_keypad_leds) value = 0;
       ret = pmic_set_led_intensity(LED_KEYPAD, value / LED_FULL);
     }
         
