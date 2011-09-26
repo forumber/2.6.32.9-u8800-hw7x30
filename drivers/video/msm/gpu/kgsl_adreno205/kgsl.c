@@ -1030,12 +1030,6 @@ static long kgsl_ioctl_sharedmem_from_vmalloc(struct kgsl_file_private *private,
 		goto error;
 	}
 
-	if ((private->vmalloc_size + len) > KGSL_GRAPHICS_MEMORY_LOW_WATERMARK
-	    && !param.force_no_low_watermark) {
-		result = -ENOMEM;
-		goto error;
-	}
-
 	list_for_each_entry_safe(entry, entry_tmp,
 				&private->preserve_entry_list, list) {
 		if (entry->memdesc.size == len) {
@@ -1687,13 +1681,13 @@ static int __devinit kgsl_platform_probe(struct platform_device *pdev)
 		clk = NULL;
 	kgsl_driver.g12_grp_pclk = clk;
 
-	if (pdata->grp2d_clk_name != NULL) {
-		clk = clk_get(&pdev->dev, pdata->grp2d_clk_name);
+	if (pdata->grp2d0_clk_name != NULL) {
+		clk = clk_get(&pdev->dev, pdata->grp2d0_clk_name);
 		if (IS_ERR(clk)) {
 			clk = NULL;
 			result = PTR_ERR(clk);
 			KGSL_DRV_ERR("clk_get(%s) returned %d\n",
-				pdata->grp2d_clk_name, result);
+				pdata->grp2d0_clk_name, result);
 		}
 	} else {
 		clk = NULL;

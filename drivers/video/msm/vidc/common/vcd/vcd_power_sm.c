@@ -17,7 +17,6 @@
  */
 
 #include "vidc_type.h"
-#include "vidc_init.h"
 #include "vcd_power_sm.h"
 #include "vcd_core.h"
 #include "vcd.h"
@@ -91,8 +90,8 @@ u32 vcd_device_power_event(struct vcd_dev_ctxt_type *p_dev_ctxt, u32 event,
 					p_dev_ctxt->n_curr_perf_lvl = 0;
 					p_dev_ctxt->n_reqd_perf_lvl = 0;
 					p_dev_ctxt->n_active_clnts = 0;
-					p_dev_ctxt->b_set_perf_lvl_pending =
-						FALSE;
+					p_dev_ctxt->
+						b_set_perf_lvl_pending = FALSE;
 					rc = vcd_enable_clock(p_dev_ctxt,
 						p_cctxt);
 					if (VCD_FAILED(rc)) {

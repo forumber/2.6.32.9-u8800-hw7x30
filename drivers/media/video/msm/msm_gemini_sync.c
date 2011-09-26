@@ -20,7 +20,7 @@
 #include <linux/list.h>
 #include <linux/uaccess.h>
 
-//#define MSM_GEMINI_DEBUG 1
+#define MSM_GEMINI_DEBUG 1
 
 #include <media/msm_gemini.h>
 #include "msm_gemini_sync.h"

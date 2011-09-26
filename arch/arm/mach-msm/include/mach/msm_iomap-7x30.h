@@ -115,4 +115,13 @@
 #define MSM_AD5_PHYS          0xA7000000
 #define MSM_AD5_SIZE          (SZ_1M*13)
 
+#define MSM_GPU_REG_PHYS      0xA3500000
+#define MSM_GPU_REG_SIZE      0x00020000
+
+#define MSM_GPU_2D_REG_PHYS   0xA3900000
+#define MSM_GPU_2D_REG_SIZE   SZ_4K
+
+#define MSM_ROTATOR_PHYS      0xA3E00000
+#define MSM_ROTATOR_SIZE      SZ_1M
+
 #endif

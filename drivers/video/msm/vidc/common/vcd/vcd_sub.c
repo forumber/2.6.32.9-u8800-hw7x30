@@ -582,9 +582,8 @@ u32 vcd_free_buffers_internal(
 			}
 		}
 
+    	vcd_reset_buffer_pool_for_reuse(p_buf_pool);
 	}
-
-	vcd_reset_buffer_pool_for_reuse(p_buf_pool);
 
 	return rc;
 }
@@ -631,7 +630,7 @@ void vcd_free_buffer_pool_entries(struct vcd_buffer_pool_type *p_buf_pool)
 	struct vcd_buffer_entry_type *list_itr, *list_next;
 	VCD_MSG_LOW("vcd_free_buffer_pool_entries:");
 
-	if (!list_empty(&p_buf_pool->a_queue))
+	if ((!list_empty(&p_buf_pool->a_queue))&& ((&p_buf_pool->a_queue)->prev != 0))
 		list_for_each_entry_safe(list_itr, list_next,
 			&p_buf_pool->a_queue, list)
 			list_del(&list_itr->list);
@@ -671,8 +670,8 @@ void vcd_reset_buffer_pool_for_reuse(struct vcd_buffer_pool_type *p_buf_pool)
 
 	if (p_buf_pool->a_entries) {
 		memset(&p_buf_pool->a_entries[1], 0,
-		sizeof(struct vcd_buffer_entry_type) *
-		VCD_MAX_BUFFER_ENTRIES);
+			sizeof(struct vcd_buffer_entry_type) *
+			VCD_MAX_BUFFER_ENTRIES);
 	}
 	p_buf_pool->n_q_len = 0;
 
@@ -755,7 +754,7 @@ struct vcd_buffer_entry_type *vcd_buffer_pool_entry_de_q
 
 	if (p_entry) {
 		list_del(&p_entry->list);
-	p_pool->n_q_len--;
+		p_pool->n_q_len--;
 	}
 
 	return p_entry;
@@ -1540,7 +1539,7 @@ u32 vcd_handle_recvd_eos(
 	rc = vcd_sched_mark_client_eof(p_cctxt->sched_clnt_hdl);
 
 	if (rc == VCD_S_SUCCESS)
-			*pb_eos_handled = TRUE;
+		*pb_eos_handled = TRUE;
 	else if (p_cctxt->b_decoding && !p_input_frame->p_virtual)
 		p_cctxt->sched_clnt_hdl->n_o_tkns++;
 	else if (!p_cctxt->b_decoding) {
@@ -1581,7 +1580,7 @@ u32 vcd_handle_first_decode_frame(struct vcd_clnt_ctxt_type_t *p_cctxt)
 		VCD_MSG_ERROR("Buffer pool is not completely setup yet");
 	else {
 		rc = vcd_sched_add_client(p_cctxt);
-	VCD_FAILED_RETURN(rc, "Failed: vcd_add_client_to_sched");
+		VCD_FAILED_RETURN(rc, "Failed: vcd_add_client_to_sched");
 		p_cctxt->sched_clnt_hdl->n_o_tkns =
 			p_cctxt->out_buf_pool.n_q_len;
 	}
@@ -1989,10 +1988,10 @@ u32 vcd_handle_frame_done(
 
 	if (status != VCD_ERR_INTRLCD_FIELD_DROP) {
 		p_cctxt->callback(event,
-				  status,
-				  &p_op_frm->vcd_frm,
-				  sizeof(struct vcd_frame_data_type),
-				  p_cctxt, p_cctxt->p_client_data);
+			status,
+			&p_op_frm->vcd_frm,
+			sizeof(struct vcd_frame_data_type),
+			p_cctxt, p_cctxt->p_client_data);
 	}
 	return rc;
 }
@@ -2096,24 +2095,24 @@ u32 vcd_handle_first_fill_output_buffer_for_enc(
 		return VCD_S_SUCCESS;
 	}
 
-		prop_hdr.prop_id = VCD_I_CODEC;
-		prop_hdr.n_size = sizeof(struct vcd_property_codec_type);
-		rc = ddl_get_property(p_cctxt->ddl_handle, &prop_hdr, &codec);
-		if (!VCD_FAILED(rc)) {
-			if (codec.e_codec != VCD_CODEC_H263) {
-				prop_hdr.prop_id = VCD_I_SEQ_HEADER;
+	prop_hdr.prop_id = VCD_I_CODEC;
+	prop_hdr.n_size = sizeof(struct vcd_property_codec_type);
+	rc = ddl_get_property(p_cctxt->ddl_handle, &prop_hdr, &codec);
+	if (!VCD_FAILED(rc)) {
+		if (codec.e_codec != VCD_CODEC_H263) {
+			prop_hdr.prop_id = VCD_I_SEQ_HEADER;
 			prop_hdr.n_size = sizeof(struct vcd_sequence_hdr_type);
 			seq_hdr.p_sequence_header = p_frm_entry->p_virtual;
-				seq_hdr.n_sequence_header_len =
+			seq_hdr.n_sequence_header_len =
 				p_frm_entry->n_alloc_len;
-				rc = ddl_get_property(p_cctxt->ddl_handle,
-					&prop_hdr, &seq_hdr);
-				if (!VCD_FAILED(rc)) {
-					p_frm_entry->n_data_len =
-						seq_hdr.n_sequence_header_len;
+			rc = ddl_get_property(p_cctxt->ddl_handle,
+				&prop_hdr, &seq_hdr);
+			if (!VCD_FAILED(rc)) {
+				p_frm_entry->n_data_len =
+					seq_hdr.n_sequence_header_len;
 				p_frm_entry->time_stamp = 0;
-					p_frm_entry->n_flags |=
-						VCD_FRAME_FLAG_CODECCONFIG;
+				p_frm_entry->n_flags |=
+					VCD_FRAME_FLAG_CODECCONFIG;
 				p_cctxt->callback(VCD_EVT_RESP_OUTPUT_DONE,
 					VCD_S_SUCCESS, p_frm_entry,
 					sizeof(struct vcd_frame_data_type),
@@ -2123,15 +2122,15 @@ u32 vcd_handle_first_fill_output_buffer_for_enc(
 			VCD_MSG_ERROR(
 				"rc = 0x%x. Failed:\
 				ddl_get_property: VCD_I_SEQ_HEADER",
-					 rc);
+				rc);
 		} else
 			VCD_MSG_LOW("Codec Type is H.263\n");
 	} else
 		VCD_MSG_ERROR(
 			"rc = 0x%x. Failed: ddl_get_property:VCD_I_CODEC",
-				 rc);
+			rc);
 	return rc;
-		}
+}
 
 u32 vcd_handle_first_fill_output_buffer_for_dec(
 	struct vcd_clnt_ctxt_type_t *p_cctxt,
@@ -2794,7 +2793,7 @@ void vcd_handle_err_fatal(struct vcd_clnt_ctxt_type_t *p_cctxt, u32 event,
 			if (VCD_FAILED(rc))
 				VCD_MSG_ERROR("Failed: sched_suspend_resume_"
 					"client rc=0x%x", rc);
-			}
+		}
 		p_cctxt->callback(event, VCD_ERR_HW_FATAL, NULL, 0, p_cctxt,
 						   p_cctxt->p_client_data);
 		p_cctxt->status.b_cleaning_up = TRUE;

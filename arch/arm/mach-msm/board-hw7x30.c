@@ -30,7 +30,6 @@
 #include <linux/mfd/marimba.h>
 #include <linux/i2c.h>
 #include <linux/input.h>
-/* removed several lines */
 #include <linux/ofn_atlab.h>
 #include <linux/power_supply.h>
 #include <linux/input/pmic8058-keypad.h>
@@ -2936,7 +2935,38 @@ static struct platform_device msm_fb_device = {
 		.platform_data = &msm_fb_pdata,
 	}
 };
+#if defined(CONFIG_MSM_HW3D)
+static struct resource resources_hw3d[] = {
+	{
+		.start	= 0xA0000000,
+		.end	= 0xA00fffff,
+		.flags	= IORESOURCE_MEM,
+		.name	= "regs",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+		.name	= "smi",
+	},
+	{
+		.flags	= IORESOURCE_MEM,
+		.name	= "ebi",
+	},
+	{
+		.start	= INT_GRAPHICS,
+		.end	= INT_GRAPHICS,
+		.flags	= IORESOURCE_IRQ,
+		.name	= "gfx",
+	},
+};
 
+
+static struct platform_device hw3d_device = {
+	.name		= "msm_hw3d",
+	.id		= 0,
+	.num_resources	= ARRAY_SIZE(resources_hw3d),
+	.resource	= resources_hw3d,
+};
+#endif
 static struct android_pmem_platform_data android_pmem_kernel_ebi1_pdata = {
        .name = PMEM_KERNEL_EBI1_DATA_NAME,
 	/* if no allocator_type, defaults to PMEM_ALLOCATORTYPE_BITMAP,
@@ -2991,43 +3021,41 @@ static struct kgsl_platform_data kgsl_pdata = {
 	.max_grp2d_freq = 0,
 	.min_grp2d_freq = 0,
 	.set_grp2d_async = NULL, /* HW workaround, run Z180 SYNC @ 192 MHZ */
-	.max_grp3d_freq = 245 * 1000*1000,
-	.min_grp3d_freq = 192 * 1000*1000,
+	.max_grp3d_freq = 245760000,
+	.min_grp3d_freq = 192000000,
 	.set_grp3d_async = set_grp3d_async,
 	.imem_clk_name = "imem_clk",
 	.grp3d_clk_name = "grp_clk",
-	.grp2d_clk_name = "grp_2d_clk",
+	.grp2d0_clk_name = "grp_2d_clk",
 };
 
-static struct resource kgsl_resources[] = {
+static struct resource msm_kgsl_resources[] = {
 	{
-		.name = "kgsl_reg_memory",
-		.start = 0xA3500000, /* 3D GRP address */
-		.end = 0xA351ffff,
+		.name  = "kgsl_reg_memory",
+		.start = MSM_GPU_REG_PHYS, /* 3D GRP address */
+		.end   = MSM_GPU_REG_PHYS + MSM_GPU_REG_SIZE - 1,
 		.flags = IORESOURCE_MEM,
 	},
 	{
 		.name   = "kgsl_phys_memory",
-		.start = 0,
-		.end = 0,
-		.flags = IORESOURCE_MEM,
+		.flags  = IORESOURCE_MEM,
 	},
 	{
-		.name = "kgsl_yamato_irq",
+		.name  = "kgsl_yamato_irq",
 		.start = INT_GRP_3D,
-		.end = INT_GRP_3D,
+		.end   = INT_GRP_3D,
 		.flags = IORESOURCE_IRQ,
 	},
 	{
-		.name = "kgsl_g12_reg_memory",
-		.start = 0xA3900000, /* Z180 base address */
-		.end = 0xA3900FFF,
+		.name  = "kgsl_g12_reg_memory",
+		.start = MSM_GPU_2D_REG_PHYS, /* Z180 base address */
+		.end   = MSM_GPU_2D_REG_PHYS + MSM_GPU_2D_REG_SIZE - 1,
 		.flags = IORESOURCE_MEM,
 	},
 	{
 		.name  = "kgsl_g12_irq",
 		.start = INT_GRP_2D,
-		.end = INT_GRP_2D,
+		.end   = INT_GRP_2D,
 		.flags = IORESOURCE_IRQ,
 	},
 };
@@ -3035,17 +3063,14 @@ static struct resource kgsl_resources[] = {
 static struct platform_device msm_device_kgsl = {
 	.name = "kgsl",
 	.id = -1,
-	.num_resources = ARRAY_SIZE(kgsl_resources),
-	.resource = kgsl_resources,
+	.num_resources = ARRAY_SIZE(msm_kgsl_resources),
+	.resource = msm_kgsl_resources,
 	.dev = {
 		.platform_data = &kgsl_pdata,
 	},
 };
 
-/* removed several lines */
 
-        /*delete some lines*/
-/*In the modem side ,LCD have been power on*/
 static int display_common_power(int on)
 {
 	int rc = 0;
@@ -5028,8 +5053,8 @@ static void __init msm7x30_allocate_memory_regions(void)
 	size = gpu_phys_size;
 	if (size) {
 		addr = alloc_bootmem(size);
-		kgsl_resources[1].start = __pa(addr);
-		kgsl_resources[1].end = kgsl_resources[1].start + size - 1;
+		msm_kgsl_resources[1].start = __pa(addr);
+		msm_kgsl_resources[1].end = msm_kgsl_resources[1].start + size - 1;
 		pr_info("allocating %lu bytes at %p (%lx physical) for "
 			"KGSL\n", size, addr, __pa(addr));
 	}

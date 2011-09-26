@@ -33,6 +33,9 @@
 #define KGSL_CONTEXT_SAVE_GMEM		1
 #define KGSL_CONTEXT_NO_GMEM_ALLOC	2
 
+/* Memory allocayion flags */
+#define KGSL_MEMFLAGS_GPUREADONLY	0x01000000
+
 /* generic flag values */
 #define KGSL_FLAGS_NORMALMODE  0x00000000
 #define KGSL_FLAGS_SAFEMODE    0x00000001
@@ -46,9 +49,22 @@
 
 /* device id */
 enum kgsl_deviceid {
+#ifdef CONFIG_GPU_MSM_KGSL_ADRENO205
 	KGSL_DEVICE_YAMATO	= 0x00000000,
 	KGSL_DEVICE_G12		= 0x00000001,
 	KGSL_DEVICE_MAX		= 0x00000002
+#else
+	KGSL_DEVICE_ANY		= 0x00000000,
+	KGSL_DEVICE_YAMATO	= 0x00000001,
+	KGSL_DEVICE_G12		= 0x00000002,
+	KGSL_DEVICE_MAX		= 0x00000002
+#endif
+};
+
+enum kgsl_user_mem_type {
+	KGSL_USER_MEM_TYPE_PMEM		= 0x00000000,
+	KGSL_USER_MEM_TYPE_ASHMEM	= 0x00000001,
+	KGSL_USER_MEM_TYPE_ADDR		= 0x00000002
 };
 
 struct kgsl_devinfo {
@@ -109,6 +125,7 @@ struct kgsl_shadowprop {
 	unsigned int flags; /* contains KGSL_FLAGS_ values */
 };
 
+#ifdef CONFIG_ARCH_MSM7X30
 struct kgsl_platform_data {
 	unsigned int high_axi_2d;
 	unsigned int high_axi_3d;
@@ -120,9 +137,9 @@ struct kgsl_platform_data {
 	int (*set_grp3d_async)(void);
 	const char *imem_clk_name;
 	const char *grp3d_clk_name;
-	const char *grp2d_clk_name;
+	const char *grp2d0_clk_name;
 };
-
+#endif
 /* ioctls */
 #define KGSL_IOC_TYPE 0x09
 
@@ -235,6 +252,22 @@ struct kgsl_drawctxt_destroy {
 #define IOCTL_KGSL_DRAWCTXT_DESTROY \
 	_IOW(KGSL_IOC_TYPE, 0x14, struct kgsl_drawctxt_destroy)
 
+/* add a block of pmem, fb, ashmem or user allocated address
+ * into the GPU address space */
+struct kgsl_map_user_mem {
+	int fd;
+	unsigned int gpuaddr;   /*output param */
+	unsigned int len;
+	unsigned int offset;
+	unsigned int hostptr;   /*input param */
+	enum kgsl_user_mem_type memtype;
+	unsigned int reserved;	/* May be required to add
+				params for another mem type */
+};
+
+#define IOCTL_KGSL_MAP_USER_MEM \
+	_IOWR(KGSL_IOC_TYPE, 0x15, struct kgsl_map_user_mem)
+
 /* add a block of pmem or fb into the GPU address space */
 struct kgsl_sharedmem_from_pmem {
 	int pmem_fd;
@@ -254,7 +287,6 @@ struct kgsl_sharedmem_free {
 #define IOCTL_KGSL_SHAREDMEM_FREE \
 	_IOW(KGSL_IOC_TYPE, 0x21, struct kgsl_sharedmem_free)
 
-
 struct kgsl_gmem_desc {
 	unsigned int x;
 	unsigned int y;
@@ -264,9 +296,9 @@ struct kgsl_gmem_desc {
 };
 
 struct kgsl_buffer_desc {
-	void 			*hostptr;
+	void 		*hostptr;
 	unsigned int	gpuaddr;
-	int				size;
+	int		size;
 	unsigned int	format;
 	unsigned int  	pitch;
 	unsigned int  	enabled;
@@ -288,9 +320,13 @@ struct kgsl_bind_gmem_shadow {
 struct kgsl_sharedmem_from_vmalloc {
 	unsigned int gpuaddr;	/*output param */
 	unsigned int hostptr;
+#ifdef CONFIG_GPU_MSM_KGSL_ADRENO205
+	unsigned int flags;
+#else
 	/* If set from user space then will attempt to
 	 * allocate even if low watermark is crossed */
 	int force_no_low_watermark;
+#endif
 };
 
 #define IOCTL_KGSL_SHAREDMEM_FROM_VMALLOC \

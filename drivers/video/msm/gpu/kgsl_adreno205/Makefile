@@ -18,4 +18,4 @@ msm_kgsl-$(CONFIG_MSM_KGSL_DRM) += kgsl_drm.o
 
 msm_kgsl-objs = $(msm_kgsl-y)
 
-obj-$(CONFIG_MSM_KGSL) += msm_kgsl.o
+obj-$(CONFIG_GPU_MSM_KGSL) += msm_kgsl.o
