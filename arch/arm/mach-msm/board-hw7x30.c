@@ -3807,6 +3807,7 @@ struct vreg *vreg_mmc;
 struct sdcc_gpio {
 	struct msm_gpio *cfg_data;
 	uint32_t size;
+    struct msm_gpio *sleep_cfg_data;
 };
 #if defined(CONFIG_MMC_MSM_SDC1_SUPPORT)
 static struct msm_gpio sdc1_lvlshft_cfg_data[] = {
@@ -3847,6 +3848,15 @@ static struct msm_gpio sdc3_cfg_data[] = {
 	{GPIO_CFG(119, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_8MA), "sdc3_dat_0"},
 };
 
+static struct msm_gpio sdc3_sleep_cfg_data[] = {	
+    {GPIO_CFG(110, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_clk"},
+    {GPIO_CFG(111, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_cmd"},
+    {GPIO_CFG(116, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_dat_3"},
+    {GPIO_CFG(117, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_dat_2"},
+    {GPIO_CFG(118, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_dat_1"},
+    {GPIO_CFG(119, 0, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_2MA), "sdc3_dat_0"},
+};
+
 static struct msm_gpio sdc4_cfg_data[] = {
 	{GPIO_CFG(58, 1, GPIO_OUTPUT, GPIO_NO_PULL, GPIO_16MA), "sdc4_clk"},
 	{GPIO_CFG(59, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_8MA), "sdc4_cmd"},
@@ -3860,18 +3870,22 @@ static struct sdcc_gpio sdcc_cfg_data[] = {
 	{
 		.cfg_data = sdc1_cfg_data,
 		.size = ARRAY_SIZE(sdc1_cfg_data),
+        .sleep_cfg_data = NULL,
 	},
 	{
 		.cfg_data = sdc2_cfg_data,
 		.size = ARRAY_SIZE(sdc2_cfg_data),
+        .sleep_cfg_data = NULL,
 	},
 	{
 		.cfg_data = sdc3_cfg_data,
 		.size = ARRAY_SIZE(sdc3_cfg_data),
+        .sleep_cfg_data = sdc3_sleep_cfg_data,
 	},
 	{
 		.cfg_data = sdc4_cfg_data,
 		.size = ARRAY_SIZE(sdc4_cfg_data),
+        .sleep_cfg_data = NULL,
 	},
 };
 
@@ -3902,7 +3916,12 @@ static uint32_t msm_sdcc_setup_gpio(int dev_id, unsigned int enable)
 				__func__,  dev_id);
 	} else {
 		clear_bit(dev_id, &gpio_sts);
-		msm_gpios_disable_free(curr->cfg_data, curr->size);
+		if (curr->sleep_cfg_data) {
+			msm_gpios_enable(curr->sleep_cfg_data, curr->size);
+			msm_gpios_free(curr->sleep_cfg_data, curr->size);
+		} else {
+			msm_gpios_disable_free(curr->cfg_data, curr->size);
+		}
 	}
 
 	return rc;

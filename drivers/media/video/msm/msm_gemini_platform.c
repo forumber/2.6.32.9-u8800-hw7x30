@@ -56,7 +56,7 @@ uint32_t msm_gemini_platform_v2p(int fd, uint32_t len, struct file **file_p)
 	/* validate user input */
 	if (len > size) {
 		GMN_PR_ERR("%s: invalid offset + len %x %lx %lx %d\n", __func__,len,size,paddr,fd);
-		return paddr;
+		return 0;
 	}
 
 	return paddr;
