@@ -273,28 +273,6 @@ static int duplicated_filter( int x, int y, int x1, int y1,
 
     return 0;
 }
-/*
-   
-    if (z>0) {
-    ref_x[0] = x;
-    ref_y[0] = y;
-    } 
-
-    if (z1>0) {
-        ref_x[1] = x1;
-        ref_y[1] = y1;
-    }
-
-    if (z == 0) {
-        ref_x[0] = ref_y[0] = 0;
-    }
-    if (z1 == 0) {
-        ref_x[1] = ref_y[1] = 0;
-    }
-
-    return 0;
-}*/
-
 
 static int synaptics_rmi4_read_pdt(struct synaptics_rmi4 *ts)
 {
