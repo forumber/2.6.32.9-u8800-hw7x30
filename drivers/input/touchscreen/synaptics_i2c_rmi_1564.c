@@ -225,46 +225,75 @@ static int debug=0;
 module_param(debug, int, 00644);
 
 static int duplicated_filter( int x, int y, int x1, int y1,
-                                                const int finger2_pressed, const int z)
+                                                int z, int z1)
 {
-        int drift_x[2];
-        int drift_y[2];
-        static int ref_x[2], ref_y[2];
-        uint8_t discard[2] = {0, 0};
+    int drift_x[2];
+    int drift_y[2];
+    static int ref_x[2], ref_y[2], ref_z[2];
+    uint8_t discard[2] = {0, 0};
 
-	if(dup_threshold==0) return 0;
+	if (dup_threshold==0)
+        return 0;
 
+    if (z>0){
         drift_x[0] = abs(ref_x[0] - x);
         drift_y[0] = abs(ref_y[0] - y);
-        if (finger2_pressed) {
-                drift_x[1] = abs(ref_x[1] - x1);
-                drift_y[1] = abs(ref_y[1] - y1);
-        }
-        /* printk("ref_x :%d, ref_y: %d, x: %d, y: %d\n", ref_x, ref_y, pos[0][0], pos[0][1]); */
-        if (drift_x[0] < dup_threshold && drift_y[0] < dup_threshold && z != 0) {
-                /* printk("ref_x :%d, ref_y: %d, x: %d, y: %d\n", ref_x[0], ref_y[0], pos[0][0], pos[0][1]); */
-                discard[0] = 1;
-        }
-        if (!finger2_pressed || (drift_x[1] < dup_threshold && drift_y[1] < dup_threshold)) {
-                discard[1] = 1;
-        }
-        if (discard[0] && discard[1]) {
-                /* if finger 0 and finger 1's movement < threshold , discard it. */
-                return 1;
-        }
+    }
+
+    if (z1>0) {
+        drift_x[1] = abs(ref_x[1] - x1);
+        drift_y[1] = abs(ref_y[1] - y1);
+    }
+    
+    if ((z==0 || (drift_x[0] < dup_threshold && drift_y[0] < dup_threshold)))
+        if (!((ref_z[0] == 0 && z > 0) || (ref_z[0] > 0 && z == 0))) //Don't discard when the finger status changes   
+            discard[0] = 1;
+
+    if (z1==0 || (drift_x[1] < dup_threshold && drift_y[1] < dup_threshold)) 
+            if (!((ref_z[1] == 0 && z1 > 0) || (ref_z[1]>0 && z1 == 0)))
+        discard[1] = 1;
+
+    if (discard[0] && discard[1]) {
+        /* if finger 0 and finger 1's movement < threshold , discard it. */
+        return 1;
+    }
+    if (z>0){
         ref_x[0] = x;
         ref_y[0] = y;
-        if (finger2_pressed) {
-                ref_x[1] = x1;
-                ref_y[1] = y1;
-        }
-        if (z == 0) {
-                ref_x[0] = ref_y[0] = 0;
-                ref_x[1] = ref_y[1] = 0;
-        }
+        ref_z[0] = z;
+    } else 
+        ref_x[0] = ref_y[0] = ref_z[0] = 0;
 
-        return 0;
+    if (z1>0) {
+        ref_x[1] = x1;
+        ref_y[1] = y1;
+        ref_z[1] = z1;
+    } else
+        ref_x[1] = ref_y[1] = ref_z[1] = 0;
+
+    return 0;
 }
+/*
+   
+    if (z>0) {
+    ref_x[0] = x;
+    ref_y[0] = y;
+    } 
+
+    if (z1>0) {
+        ref_x[1] = x1;
+        ref_y[1] = y1;
+    }
+
+    if (z == 0) {
+        ref_x[0] = ref_y[0] = 0;
+    }
+    if (z1 == 0) {
+        ref_x[1] = ref_y[1] = 0;
+    }
+
+    return 0;
+}*/
 
 
 static int synaptics_rmi4_read_pdt(struct synaptics_rmi4 *ts)
@@ -512,7 +541,7 @@ static int synaptics_rmi4_read_pdt(struct synaptics_rmi4 *ts)
 /*===========================================================================
 FUNCTION      is_in_extra_region
 DESCRIPTION
-              ÊÇ·ñÔÚ¸½¼ÓTOUCHÇø
+              æ˜¯å¦åœ¨é™„åŠ TOUCHåŒº
 DEPENDENCIES
   None
 RETURN VALUE
@@ -536,7 +565,7 @@ static bool is_in_extra_region(int pos_x, int pos_y)
 /*===========================================================================
 FUNCTION      touch_get_extra_keycode
 DESCRIPTION
-              È¡µÃ¸½¼ÓÇø¼üÖµ
+              å–å¾—é™„åŠ åŒºé”®å€¼
 DEPENDENCIES
   None
 RETURN VALUE
@@ -664,7 +693,7 @@ static void synaptics_rmi4_work_func(struct work_struct *work)
 				}
 				if (!finger_status)
 					z = 0;
-				if(!duplicated_filter(x,y,x1,y1, finger2_status, z)) {
+				if(!duplicated_filter(x,y,x1,y1, z, z1)) {
 				
 					input_report_abs(ts->input_dev,
 						 ABS_MT_TOUCH_MAJOR, z);
