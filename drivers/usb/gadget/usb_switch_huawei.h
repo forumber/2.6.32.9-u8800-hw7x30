@@ -195,6 +195,7 @@ typedef struct _usb_pid_stru
 
     /* new requirement: usb tethering */
     u16     wlan_pid;
+    u16     unther_pid;
 }usb_pid_stru;
 
 extern usb_pid_stru *curr_usb_pid_ptr;

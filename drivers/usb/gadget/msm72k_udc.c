@@ -2350,7 +2350,11 @@ static ssize_t msm_hsusb_show_switchusb(struct device *dev,
     /* new requirement: usb tethering */
     else if(usb_switch_para.dest_pid == curr_usb_pid_ptr->wlan_pid)
     {
-    	i = scnprintf(buf, PAGE_SIZE, "usb_switch_para.dest_pid is wlan\n");
+    	i = scnprintf(buf, PAGE_SIZE, "ther_unet\n");
+    }
+    else if(usb_switch_para.dest_pid == curr_usb_pid_ptr->unther_pid)
+    {
+    	i = scnprintf(buf, PAGE_SIZE, "unther_unet\n");
     }
     else
     {
@@ -2385,11 +2389,13 @@ static ssize_t msm_hsusb_store_switchusb(struct device *dev,
     if(!memcmp(buf, wlanunther, strlen(wlanunther)))
     {
         usb_switch_composition((unsigned short)usb_para_info.usb_pid, 0);
+        usb_switch_para.dest_pid = curr_usb_pid_ptr->unther_pid;
         return size;
     }
     else if(!memcmp(buf, wlanther, strlen(wlanther)))
     {
         usb_switch_composition((unsigned short)curr_usb_pid_ptr->wlan_pid, 0);
+        usb_switch_para.dest_pid = curr_usb_pid_ptr->wlan_pid;
         return size;
     }
     /* add new pid config for google */
