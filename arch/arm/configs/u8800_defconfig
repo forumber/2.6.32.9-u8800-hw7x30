@@ -2126,6 +2126,8 @@ CONFIG_MSM_RPCSERVERS=y
 #
 # CONFIG_RAR_REGISTER is not set
 # CONFIG_IIO is not set
+CONFIG_XVMALLOC=y
+CONFIG_ZRAM=y
 
 #
 # File systems
