@@ -2048,16 +2048,10 @@ static int msmsdcc_pm_resume(struct device *dev)
 	struct msmsdcc_host *host = mmc_priv(mmc);
 	int rc = 0;
 
-	rc = msmsdcc_runtime_resume(dev);
+	if (!pm_runtime_suspended(dev))
+	  rc = msmsdcc_runtime_resume(dev);
 	if (host->plat->status_irq)
 		enable_irq(host->plat->status_irq);
-
-	pm_runtime_disable(dev);
-	rc = pm_runtime_set_active(dev);
-	if (rc < 0)
-		pr_info("%s: %s: failed with error %d", mmc_hostname(mmc),
-				__func__, rc);
-	pm_runtime_enable(dev);
 
 	return rc;
 }
