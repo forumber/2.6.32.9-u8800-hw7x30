@@ -1917,7 +1917,7 @@ static u32 touch_get_extra_keycode(int pos_x, int pos_y)
     return touch_keycode;
 }
 #endif
-static int vibrate=30;
+static int vibrate=0;
 
 module_param(vibrate, int, 00644);
 
