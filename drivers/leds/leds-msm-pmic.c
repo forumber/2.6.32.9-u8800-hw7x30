@@ -44,7 +44,7 @@ static void msm_keypad_bl_led_set(struct led_classdev *led_cdev,
     if(machine_is_msm7x30_u8800()) 
     {
 	  if(disable_keypad_leds) value = 0;
-      ret = pmic_set_led_intensity(LED_KEYPAD, value / 80);
+      ret = pmic_set_led_intensity(LED_KEYPAD, value/63);
     }
         
     if(machine_is_msm7x30_u8820())
