@@ -4065,7 +4065,7 @@ static struct mmc_platform_data msm7x30_sdc3_data = {
 #endif
 	.msmsdcc_fmin	= 144000,
 	.msmsdcc_fmid	= 24576000,
-	.msmsdcc_fmax	= 49152000,
+	.msmsdcc_fmax	= 40960000,
 	.nonremovable	= 1,
 };
 #endif
