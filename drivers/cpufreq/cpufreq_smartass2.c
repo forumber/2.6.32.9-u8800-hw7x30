@@ -41,10 +41,10 @@
 
 /*
  * The "ideal" frequency to use when awake. The governor will ramp up faster
- * twards the ideal frequency and slower after it has passed it. Similarly,
- * lowering the frequency towards the ideal frequency is faster than below it.
+ * towards the ideal frequency and slower after it has passed it. Similarly,
+ * lowering the frequency twards the ideal frequency is faster than below it.
  */
-#define DEFAULT_AWAKE_IDEAL_FREQ 1024000
+#define DEFAULT_AWAKE_IDEAL_FREQ 368640
 static unsigned int awake_ideal_freq;
 
 /*
@@ -53,21 +53,21 @@ static unsigned int awake_ideal_freq;
  * that practically when sleep_ideal_freq==0 the awake_ideal_freq is used
  * also when suspended).
  */
-#define DEFAULT_SLEEP_IDEAL_FREQ 245760
+#define DEFAULT_SLEEP_IDEAL_FREQ 368640
 static unsigned int sleep_ideal_freq;
 
 /*
- * Freqeuncy delta when ramping up.
+ * Frequency delta when ramping up.
  * zero disables and causes to always jump straight to max frequency.
  */
-#define DEFAULT_RAMP_UP_STEP 128000
+#define DEFAULT_RAMP_UP_STEP 100000
 static unsigned int ramp_up_step;
 
 /*
  * Freqeuncy delta when ramping down.
  * zero disables and will calculate ramp down according to load heuristic.
  */
-#define DEFAULT_RAMP_DOWN_STEP 256000
+#define DEFAULT_RAMP_DOWN_STEP 100000
 static unsigned int ramp_down_step;
 
 /*
@@ -98,7 +98,7 @@ static unsigned long down_rate_us;
  * The frequency to set when waking up from sleep.
  * When sleep_ideal_freq=0 this will have no effect.
  */
-#define DEFAULT_SLEEP_WAKEUP_FREQ 1612800
+#define DEFAULT_SLEEP_WAKEUP_FREQ 99999999
 static unsigned int sleep_wakeup_freq;
 
 /*
@@ -162,10 +162,14 @@ static int cpufreq_governor_smartass(struct cpufreq_policy *policy,
 static
 #endif
 struct cpufreq_governor cpufreq_gov_smartass2 = {
-	.name = "SmartassV2",
-	.governor = cpufreq_governor_smartass,
-	.max_transition_latency = 9000000,
-	.owner = THIS_MODULE,
+  .name = "smartassV2",
+  .governor = cpufreq_governor_smartass,
+#if defined(CONFIG_ARCH_MSM_SCORPION)
+  .max_transition_latency = 8000000,
+#else
+  .max_transition_latency = 9000000,
+#endif
+  .owner = THIS_MODULE,
 };
 
 inline static void smartass_update_min_max(struct smartass_info_s *this_smartass, struct cpufreq_policy *policy, int suspend) {
