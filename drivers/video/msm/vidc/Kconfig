@@ -16,13 +16,6 @@ config MSM_VIDC_720P
 	help
 	This option enables support for Video core.
 
-config MSM_VIDC_1080P
-	bool "1080P Video Core"
-	depends on MSM_VIDC && ARCH_MSM8X60
-	default y
-	help
-	This option enables support for Video core.
-
 config MSM_VIDC_VENC
 	tristate "Video encoder"
 	depends on MSM_VIDC
